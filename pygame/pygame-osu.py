@@ -340,10 +340,7 @@ trace={
 
 # In[22]:
 
-
-class GameMania(Page):
-
-            
+class GameMania(Page):    
     def do(self,argument):
         Map.readMap(argument[0],argument[1])
         readMusic()
@@ -357,21 +354,23 @@ class GameMania(Page):
         self.register.append(reg)
 
         trace['Width']=trace['Skin'][0].get_size()[0]
-        for i in range(trace['Number']):
+        for i in range(trace['Number']): #根據先前設定好的軌道數量，利用相對位置生成整齊的軌道圖片
             if i==0:
                 reg=Animation(((self.size[0]-trace['BoxWidth']*(trace['Number']-1)-trace['Number']*trace['Width'])//2,0),surface=trace['Skin'][0])
             else:
                 reg=Animation((self.register[-1].rect.topright[0]+trace['BoxWidth'],0),surface=trace['Skin'][0])
             reg.animation(trace['Skin'])
             self.register.append(reg)
-        TraceSkin=self.register[-trace['Number']::]
+        TraceSkin=self.register[-trace['Number']::]#保存位置，以後方便使用
 
+        #生成判定線
         reg=Register((TraceSkin[0].rect.topleft[0],trace['Judge']),(TraceSkin[-1].rect.topright[0]-TraceSkin[0].rect.topleft[0],5))
         reg.surface.fill(trace['Color'])
         self.register.append(reg)
         TraceJudge=self.register[-1]
         TraceJudgeLineY=TraceJudge.rect.centery
 
+        #生成掉落方塊
         note=pygame.image.load_extended(path.join(skinDir,'mania-note1.png')).convert_alpha()
         noteX,noteY=note.get_size()
         hnote=pygame.image.load_extended(path.join(skinDir,'mania-note1L-0.png')).convert_alpha()
@@ -394,6 +393,7 @@ class GameMania(Page):
         mania50=[pygame.image.load_extended(path.join(skinDir,'hit50-'+str(i)+ '.png')).convert_alpha() for i in range(30)]
         mania0=[pygame.image.load_extended(path.join(skinDir,'hit0-'+str(i)+ '.png')).convert_alpha() for i in range(35)]
 
+        #設定擊中時的動畫效果
         for i in range(trace['Number']):
             reg=AnimationMultipleEffectCenter((TraceSkin[i].rect.center[0],trace['Judge']))
             reg.animation(mania300)
@@ -403,32 +403,23 @@ class GameMania(Page):
             self.register.append(reg)
         TracePoint=self.register[-trace['Number']:]
 
-        moveTime=1500/trace['Speed']
+        moveTime=1500/trace['Speed']#設定物體掉落的速度(EX:若1倍速，則物體掉落的時間為1.5sec)
         music.set_volume(Map.songMap.timing_points[0].volume/100)            
         
-        hit_obj=Map.songMap._hit_objects.copy()
-        hit_obj.reverse()
+        hit_obj=Map.songMap._hit_objects.copy()#copy掉落物件的屬性
+        hit_obj.reverse()#把list反轉，提高讀取速度(由最後一個往前讀取)
         hit_objTime=hit_obj[-1].time.total_seconds()*1000
         
         timeBoard={'Perfect':75,'Great':150,'Good':350,'Miss':500}
         scoreBoard={'Perfect':0,'Great':0,'Good':0,'Miss':0,'Combo':[0]}
-        comboBoard=ScoreBoard()
+        comboBoard=ScoreBoard()#顯示連擊數
         comboBoard.color=(0,255,255)
         self.register.append(comboBoard)
-        
-        fpsBoard=ScoreBoard()
-        fpsBoard.color=(0,255,0)
-        self.register.append(fpsBoard)
-        
-        totalNote=ScoreBoard()
-        totalNote.pos=(0,fpsBoard.font.size('0')[1])
-        self.register.append(totalNote)
-        
+
         self.KEY=[True for i in range(trace['Number'])]
         music.play()
         music.set_endevent(MUSIC_END)
         while 1:
-#             timer_clear()
             time=music.get_pos()
             NotesClear=[]
             event_get=pygame.fastevent.get()
@@ -438,21 +429,21 @@ class GameMania(Page):
                     sys.exit()
                 if event.type == KEYDOWN:
                     if not AUTO:
-                        if event.unicode in trace['BtnKey']:
-                            index=trace['BtnKey'][event.unicode]
+                        if event.unicode in trace['BtnKey']:#取得以設定的按鍵值(EX: D F J K)
+                            index=trace['BtnKey'][event.unicode] #把值給變數index
                             TraceSkin[index].frame=1
                             if self.KEY[index]:
                                 for i,v in enumerate(Notes.register):
                                     if v.trace != index or v.type != noteType['Down']:
                                         continue
                                     for i0,k in enumerate(timeBoard.keys()):
-                                        if -timeBoard[k]<=time-v.time<=timeBoard[k]:
+                                        if -timeBoard[k]<=time-v.time<=timeBoard[k]:#判斷按下去時，是得到perfect great good miss
                                             if k!='Miss':
-                                                scoreBoard['Combo'][-1]+=1
-                                            else:
+                                                scoreBoard['Combo'][-1]+=1 #增加combo
+                                            else: #結束combo
                                                 scoreBoard['Combo'][-1]=int(scoreBoard['Combo'][-1])
                                                 scoreBoard['Combo'].append(0)
-                                            if scoreBoard['Combo'][-1]>0:
+                                            if scoreBoard['Combo'][-1]>0: #有combo才顯示combo數
                                                 comboBoard.content=str(int(scoreBoard['Combo'][-1]))
                                             TracePoint[index].begin(i0)
                                             scoreBoard[k]+=1
@@ -472,7 +463,7 @@ class GameMania(Page):
                             TraceSkin[index].frame=0
                             self.KEY[index]=True
                             for i,v in enumerate(Notes.register):
-                                if v.trace!=index : 
+                                if v.trace!=index: 
                                     continue
                                 if v.type!=noteType['Up']:
                                     break
@@ -492,7 +483,6 @@ class GameMania(Page):
                                 else:
                                     continue
                                 break
-
                             TracePoint[index].end()
 
                 if event.type == music.get_endevent():
@@ -501,7 +491,7 @@ class GameMania(Page):
                 if EVENT_PRINT:
                     print(event)
 
-            def compute(dt):
+            def compute(dt): #計算位置
                 return TraceJudgeLineY*dt//moveTime
 
             if AUTO:
@@ -520,10 +510,10 @@ class GameMania(Page):
 
 
             if len(hit_obj)>0 and time>hit_objTime-moveTime:
-                t=assignTrace(hit_obj[-1].position[0])
+                t=assignTrace(hit_obj[-1].position[0])  #取得軌道
                 length=TraceJudgeLineY-compute(hit_objTime-time)
                 pos=TraceSkin[t].rect.centerx-Notes.pos[0]
-                if type(hit_obj[-1]) is slider.beatmap.HoldNote:
+                if type(hit_obj[-1]) is slider.beatmap.HoldNote:#判斷現在讀取的hit_obj屬性是否為hold_note，然後生成出register
                     endtime=eval(hit_obj[-1].addition.split(':')[0])
                     endlength=TraceJudgeLineY-compute(endtime-time)
                     totalL=int((length-endlength))
@@ -551,7 +541,7 @@ class GameMania(Page):
                     reg.trace=t
                     reg.type=noteType['Up']
                     Notes.register.append(reg)
-                else:
+                else:   #判斷現在讀取的hit_obj屬性是否為note，然後生成出register
                     reg=Register((TraceSkin[t].rect.centerx-noteX//2-Notes.pos[0],length-noteY//2),surface=note)
                     reg.starttime=hit_objTime
                     reg.endtime=hit_objTime
@@ -561,57 +551,46 @@ class GameMania(Page):
                     reg.type=noteType['Down']
                     Notes.register.append(reg)
                 hit_obj.pop()
-                try:
+                try: #先嘗試計算下一個欲掉落物件的時間
                     hit_objTime=hit_obj[-1].time.total_seconds()*1000
                 except:
                     pass
             for index,key in enumerate(self.KEY):
                 TracePoint[index].update(10)
-                if not key:
+                if not key: #如果按鍵按下
                     for i,v in enumerate(Notes.register):
-                        if v.trace!=index or v.type != noteType['Hold']:
+                        if v.trace!=index or v.type != noteType['Hold']: #判斷掉落物件是否為hold屬性
                             continue
                         if v.type==noteType['Hold'] and time>=v.starttime:
                             length=TraceJudgeLineY*(v.endtime-time)//moveTime
-                            v.surface.set_clip(pygame.Rect((0,0),(v.size[0],length)))
+                            v.surface.set_clip(pygame.Rect((0,0),(v.size[0],length))) #把超出範圍的圖形，利用set_clip切割掉不顯示
                         if time >v.endtime:
-                            TracePoint[index].trigger(0)
-                            NotesClear.append(i)
+                            TracePoint[index].trigger(0) #觸發特效（0代表perfect）
+                            NotesClear.append(i) #把要刪除的index丟入垃圾桶
                             break
-            for i,v in enumerate(Notes.register):
+            for i,v in enumerate(Notes.register): #判定掉落物件是否超出判定線
                 v.rect.centery=TraceJudgeLineY-compute(v.time-time)
-                if  v.rect.centery>=TraceJudge.rect.centery and time-v.endtime>timeBoard['Miss']:
+                if  v.rect.centery>=TraceJudge.rect.centery and time-v.endtime>timeBoard['Miss']: #判定物件位置超出Miss的預設值
                     scoreBoard['Miss']+=1
-                    if scoreBoard['Combo'][-1]>0:scoreBoard['Combo'].append(0)
+                    if scoreBoard['Combo'][-1]>0:scoreBoard['Combo'].append(0) #combo設定為0
                     comboBoard.content=""
                     NotesClear.append(i)
 
-#             if len(Notes.register)>1000:
-#                 try:
-#                     Notes.register=list(list(zip(*filter(lambda x:x[0] not in NotesClear,enumerate(Notes.register))))[1])
-#                 except:
-#                     Notes.register=[]
-#             else:
-            NotesClear.sort(reverse=1)
-            for i in NotesClear:
-                del Notes.register[i]
+            NotesClear.sort(reverse=1) #把欲清除的list排列
+            for i in NotesClear: 
+                del Notes.register[i] #清理垃圾桶
 
-            clock.tick(480)
-            if FPSINFO:
-                fpsBoard.content="%3.1f"%(clock.get_fps())
-                fpsBoard.update()
-                totalNote.content="%d"%(len(Notes.register)) 
-                totalNote.update()
-            comboBoard.pos=(self.size-comboBoard.size)//2
+            comboBoard.pos=(self.size-comboBoard.size)//2 #置中comboBoard
             comboBoard.update()
             
             Notes.clear()
             Notes.blit()
 
-            if not all(self.size-screen.get_size()):
+            
+            if not all(self.size-screen.get_size()):#判斷self.size與預設大小1366*768是否相同，若相同則直接把內容顯示出來
                 screen.fill((128,128,128))
                 screen.blits([(sur.surface,sur.pos,sur.surface.get_clip(),BLEND_ALPHA_SDL2) for sur in self.register])
-            else:
+            else:#調整視窗大小，避免因調整而座標系統跑掉
                 self.clear()
                 self.blit()
                 BlitToWindow(self.surface)
@@ -828,12 +807,6 @@ except:
 Map=MapManager(songsDir)
 # print(len(Map.songs[0]['osu']))  列印出第0首個中，有幾個難易度可供選擇
 page1()
-
-
-# In[ ]:
-
-
-
 
 
 # In[ ]:
